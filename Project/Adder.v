@@ -1,11 +1,11 @@
 `timescale 1ns / 1ps
 
-module N_bit_adder #(parameter N=32)(input1,input2,answer,overflow);
+module N_bit_adder #(parameter N=32)(input [N-1:0] input1, [N-1:0] input2, output [N-1:0] answer,cout);
 
-input [N-1:0] input1,input2;
-   output [N-1:0] answer;
-   output [1:0] overflow;
-  wire  carry_out;
+//input [N-1:0] input1,input2;
+//output [N-1:0] answer;
+//output [1:0] overflow;
+ // wire  carry_out;
   wire [N-1:0] carry;
    genvar i;
    generate 
@@ -16,9 +16,9 @@ input [N-1:0] input1,input2;
    else
   full_adder f(input1[i],input2[i],carry[i-1],answer[i],carry[i]);
      end
-  assign carry_out = carry[N-1];
-  assign overflow[0] = (carry_out == 1)?1:0; //overflow for unsigned
-  assign overflow[1] = ( (A[N-1] == B[N-1]) && (sum[N-1] != A[N-1]) )?1:0; //overflow for signed
+  assign cout = carry[N-1];
+  //assign overflow[0] = (carry_out == 1)?1:0; //overflow for unsigned
+  //assign overflow[1] = ( (A[N-1] == B[N-1]) && (sum[N-1] != A[N-1]) )?1:0; //overflow for signed
   
    endgenerate
 endmodule 
@@ -55,6 +55,3 @@ always @(*) begin
     endcase
 end
 endmodule
-
-
-
