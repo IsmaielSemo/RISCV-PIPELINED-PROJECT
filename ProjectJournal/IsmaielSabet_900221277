@@ -2,3 +2,10 @@ Architecture Project 1 Journal:
   On April 5, 2025:
     -	At 1:25pm, started drawing the single cycle block diagram.
     -	At 4:05pm, completed the single cycle block diagram.
+  On April 6, 2025:
+    - At 10am, started developing the I type instructions.
+    - At 10:50am, completed a first version of shift instructions (SLLI, SRLI, SRAI).
+    - At 10:52am, Started SLTI and SLTIU.
+    - At 11am, finished a first version of SLTI and SLTIU.
+    - At 11:03am, started to implement the three control signals (in addition to zero flag).
+    - At 11:07 am, finished the zero and sign flags.
