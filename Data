@@ -3,13 +3,13 @@ In RV32I :
 
 I-Type instructions:
 
-#Load Instructions (LBU, LHU, LW) #
+** Load Instructions (LBU, LHU, LW) **
 
-# Arithmetic Instructions with Immediate (ADDI, SLTI, SLTIU, XORI, ORI, ANDI) #
+** Arithmetic Instructions with Immediate (ADDI, SLTI, SLTIU, XORI, ORI, ANDI) **
 
-# Shift Instructions (SLLI, SRLI, SRAI) #
+** Shift Instructions (SLLI, SRLI, SRAI) **
 
-#Control Instructions (JALR) #
+** Control Instructions (JALR) **
 
 R-Type instructions:
 
