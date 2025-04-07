@@ -9,3 +9,9 @@ Architecture Project 1 Journal:
     - At 11am, finished a first version of SLTI and SLTIU.
     - At 11:03am, started to implement the three control signals (in addition to zero flag).
     - At 11:07 am, finished the zero and sign flags.
+    - At 11:40am, started to route all the instructions in ALU
+    - At 1pm, finished the routing of instructions in ALU.
+
+On April 7, 2025:
+  - On 3:30pm, started to develop the ALU_Control and add other instructions control signals
+  - On 4:05pm, finished all R- type instruction signals and some I-type (ADDI,ANDI,SUBI)
