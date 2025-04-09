@@ -24,18 +24,18 @@ assign OR = A | B; //ORI
 wire [N-1:0] XOR;
 assign XOR = A ^ B; //XORI
 wire [N-1:0] SLLI;
-assign SLTI = A << B;
+assign SLLI = A << B; //SLLI
 wire [N-1:0] SRLI;
-assign SRLI = A >> B;
+assign SRLI = A >> B; //SRLI
 wire [N-1:0] SRAI;
 wire sign_bit = A[N-1]; 
-assign SRAI = { {B{sign_bit}}, A >> B };
+assign SRAI = { {B{sign_bit}}, A >> B }; //SRAI
 
 wire [N-1:0] SLTI;
-assign  SLTI = (A<B)?1:0 ; 
+assign  SLTI = (A<B)?1:0 ; //SLTI
 
 wire [N-1:0] SLTIU;
-assign  SLTIU = ({1'b0, A}<{1'b0, B})?1:0 ;
+assign  SLTIU = ({1'b0, A}<{1'b0, B})?1:0 ; //SLTIU
 
 
 //wire [N-1:0] SLT_SLTU_SLTI_SLTIU;
