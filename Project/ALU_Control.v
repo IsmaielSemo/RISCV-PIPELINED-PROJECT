@@ -15,8 +15,8 @@ always @(*) begin
     case (ALUOp)
         2'b00: ALU_sel  = 4'b0010;  // LW, SW
         2'b01: ALU_sel  = 4'b0110;  // Branch
-        2'b10: begin
-            if({function3,function1} == 4'b0000) //R Type
+        2'b10: begin //R Type
+            if({function3,function1} == 4'b0000) 
                 ALU_sel = 4'b0010; //ADD
             else if({function3,function1} == 4'b0001)
                 ALU_sel = 4'b0110; //SUB
@@ -58,7 +58,7 @@ always @(*) begin
                 ALU_sel = 4'b1001; //SRA
         end
         
-        endcase
+    endcase
 end             
 
 endmodule
