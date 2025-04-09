@@ -37,6 +37,7 @@ assign  SLTI = (A<B)?1:0 ;
 wire [N-1:0] SLTIU;
 assign  SLTIU = ({1'b0, A}<{1'b0, B})?1:0 ;
 
+
 //wire [N-1:0] SLT_SLTU_SLTI_SLTIU;
 //assign  SLT_SLTU_SLTI_SLTIU = (A<B)?1:0 ; // Also SLTIU
 
