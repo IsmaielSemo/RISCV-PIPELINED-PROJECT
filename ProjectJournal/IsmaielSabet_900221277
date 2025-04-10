@@ -15,3 +15,6 @@ Architecture Project 1 Journal:
 On April 7, 2025:
   - On 3:30pm, started to develop the ALU_Control and add other instructions control signals
   - On 4:05pm, finished all R- type instruction signals and some I-type (ADDI,ANDI,SUBI)
+
+On April 9, 2025:
+  - At 11am, completed the ALU Control Unit, in addition to revising the instructions in the ALU
