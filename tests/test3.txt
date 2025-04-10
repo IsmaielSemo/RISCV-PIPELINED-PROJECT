@@ -1,0 +1,4 @@
+# Test case to check LW instruction
+addi x6, x0, 996  # x6 = 996
+# Memory at x6+4 contains 0x12345678
+lw x5, 4(x6)      # x5 = Mem[x6+4] = 0x12345678

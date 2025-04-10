@@ -1,0 +1,4 @@
+# Test case to check SW instruction
+addi x6, x0, 996  # x6 = 996
+addi x5, x0, 0x12345678  # x5 = 0x12345678
+sw x5, 4(x6)      # Mem[x6 + 4] = 0x12345678

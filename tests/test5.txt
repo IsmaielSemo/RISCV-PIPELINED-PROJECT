@@ -1,0 +1,4 @@
+# Test case to check BEQ instruction
+addi x5, x0, 10   # x5 = 10
+addi x6, x0, 10   # x6 = 10
+beq x5, x6, label # Branch taken because x5 == x6

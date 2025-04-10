@@ -1,0 +1,3 @@
+# Test case to check JAL (Jump and Link) instruction
+jal x1, label     # Jump to "label" and save return address (PC + 4) to x1
+# x1 should contain 1004 (PC + 4)

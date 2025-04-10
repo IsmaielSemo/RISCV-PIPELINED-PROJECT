@@ -1,0 +1,5 @@
+# Test case to check JALR (Jump and Link Register) instruction
+addi x2, x0, 2000 # x2 = 2000
+jalr x1, x2, 0    # Jump to address in x2 (2000) and save return address (PC + 4) to x1
+# x1 should contain 1004 (PC + 4)
+# The program jumps to address 2000
