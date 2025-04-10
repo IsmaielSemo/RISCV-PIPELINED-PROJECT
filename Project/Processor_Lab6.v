@@ -43,8 +43,15 @@ DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2] ,data_in2 ,data_final);//w
 Nbit_2x1mux #(32) mux2(ALU_Result,data_final,MemtoReg, WriteData);
 
 Nbit_shift_left #(32) shift(imm_out,shifted_imm_out);
+wire [31:0] LUI;
+Nbit_shift_left_12 #(32,12) shift12(imm_out,LUI);
+
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
 N_bit_adder #(32) add2( shifted_imm_out, PC_out, Sum);
+
+wire [31:0] AUIPC;
+assign AUIPC = PC + LUI;
+
 assign last_sel = zero_flag & Branch;
 Nbit_2x1mux #(32) mux3(add4,Sum, last_sel,PC_in);
 

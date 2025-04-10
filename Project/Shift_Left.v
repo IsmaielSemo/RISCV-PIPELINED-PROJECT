@@ -12,12 +12,12 @@ output [N-1:0] out
     
 endmodule
 
-module Nbit_shifter_left #(parameter N=8, parameter L = 1)(
+module Nbit_shifter_left_12 #(parameter N=8)(
 input [N-1:0] a,
 output [N-1:0] out
     );
     
-    assign out = a<<L;
+    assign out = a<<12;
     
 endmodule
  
