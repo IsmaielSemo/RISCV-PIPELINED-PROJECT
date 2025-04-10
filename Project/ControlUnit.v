@@ -1,14 +1,15 @@
 `timescale 1ns / 1ps
 
 module ControlUnit ( //Inst was originally from 4:0
-    input [4:0] Inst,          
-    output reg Branch,        
+    input [4:0] Inst,                  
     output reg MemRead,       
     output reg MemtoReg,      
     output reg [1:0] ALUOp,   
     output reg MemWrite,      
     output reg ALUSrc,        
-    output reg RegWrite       
+    output reg RegWrite,
+    output reg Branch,
+    output reg Jump       
 );
 
 always @(*) begin
@@ -20,7 +21,7 @@ always @(*) begin
     MemWrite = 0;
     ALUSrc = 0;
     RegWrite = 0;
-
+    AUIPC_Ctrl = 0;
     case (Inst)
         5'b01100: begin  //originally 5'b01100
             Branch = 0;
