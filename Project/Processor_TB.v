@@ -8,8 +8,12 @@ localparam clk_period = 10;
 
 reg clk = 1'b0;
 reg reset;
-
-Processor_Lab6 Process(clk, reset);
+reg [1:0] ledSel;
+reg[3:0] ssdSel;
+wire [15:0] leds;
+wire [12:0] ssd;
+    
+ Processor_Lab6 Process( clk,reset,ledSel, ssdSel, leds,ssd );
  
 initial 
     begin
@@ -18,9 +22,6 @@ initial
     end 
  
 initial begin
-         
-       
-
        
         reset = 1;
         #10 

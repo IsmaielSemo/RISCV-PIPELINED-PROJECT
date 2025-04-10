@@ -17,7 +17,8 @@ wire [31:0] imm_out;
 
 wire [31:0] data_in1;
 wire [31:0] data_in2;
-wire zero_flag;
+wire zero_flag, branch_out;
+ wire carry_flag, overflow_flag, sign_flag;
 wire [31:0] ALU_Result;
 wire  [3:0] ALU_sel;
 wire [31:0] B;
@@ -38,16 +39,24 @@ ImmGen imm (imm_out, instruction);
 Register_Reset RF(clk,reset,RegWrite,instruction [19:15], instruction [24:20], instruction [11:7], WriteData, data_in1, data_in2); //should data_in1 and data_in2 be outputs or inputs (refer to RF module and change over there if necessary)
 Nbit_2x1mux #(32) MUX(data_in2,imm_out,ALUSrc,B);
 ALUControlUnit ALUcontrol(ALUOp,instruction[14:12],instruction[30],ALU_sel); 
-NBitALU #(32) ALU(clk,data_in1,B, ALU_sel,ALU_Result,zero_flag);
+NBitALU #(32) ALU(clk,data_in1,B, ALU_sel,ALU_Result,zero_flag,  overflow_flag , sign_flag, carry_flag );
 //Nbit_2x1mux #(32) mux1(ALU_Result,data_in2,MemtoReg,B);
-DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2] ,data_in2 ,data_final);//why ALU_Result [7:2]
-Nbit_2x1mux #(32) mux2(ALU_Result,data_final,MemtoReg, WriteData);
+DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2], instruction[14:12] ,data_in2 ,data_final);//why ALU_Result [7:2]
+wire [31:0] DataOut;
+Nbit_2x1mux #(32) mux2(ALU_Result,data_final,MemtoReg, DataOut);
+
+assign WriteData = (auipc==1)? AUIPC:
+                (jalr==1 || jal==1)? JALR: 
+                (RegWrite == 1 && ALUOp == 2'b11 && ALUSrc ==1)? LUI:
+                 DataOut;
+                 
+BranchControl branchCntl( Branch, zero_flag, sign_flag, overflow_flag, carry_flag, instruction[6:2] , instruction[14:12] , branch_out);
 
 wire [31:0] shifted_imm_out;
 Nbit_shift_left #(32) shift(imm_out,shifted_imm_out);
 
 wire [31:0] LUI;
-Nbit_shift_left_12 #(32,12) shift12(imm_out,LUI);
+Nbit_shift_left_12 #(32) shift12(imm_out,LUI);
 
 wire [31:0] shifted;
 Nbit_2x1mux #(32) mux_shift(shifted_imm_out,LUI,auipc, shifted);
@@ -62,12 +71,12 @@ assign JAL = add4;
 assign JALR = add4;
 
 
-//assign last_sel = zero_flag & Branch;
+assign last_sel = zero_flag & Branch;
 assign PC_in = (auipc==1)? AUIPC:
                 (jalr==1)? JALR: 
                 (zero_flag & Branch == 1)? Sum:
                  add4;
-//Nbit_2x1mux #(32) mux3(add4,Sum, last_sel,PC_in);
+Nbit_2x1mux #(32) mux3(add4,Sum, last_sel,PC_in);
 
 assign signals ={2'b00,ALUOp,ALU_Result,zero_flag,last_sel,Branch,MemRead,MemtoReg,MemWrite,ALUSrc,RegWrite};
 always@(*)begin
