@@ -8,7 +8,7 @@ output [15:0] leds //, output [12:0] ssd
     wire  [12:0] ssdin;
     Processor_Lab6 processor( clk,reset,ledSel,ssdSel,leds,ssdin); //originally ssdin
     //assign ssd = ssdin;   // Assign the ssd input from Processor_Lab6 to the top-level output ssd
-    Four_Digit_Seven_Segment_Driver ( SSD_clk,  ssdin, Anode ,LED_out);
+    //Four_Digit_Seven_Segment_Driver ( SSD_clk,  ssdin, Anode ,LED_out);
     
      
        

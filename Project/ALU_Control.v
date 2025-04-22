@@ -10,7 +10,7 @@ module ALUControlUnit (
 
 always @(*) begin
 
-    ALU_sel  = 4'b0000;
+    //ALU_sel  = 4'b0000;
     
     case (ALUOp)
         2'b00: ALU_sel  = 4'b0010;  // LW, SW
@@ -57,8 +57,9 @@ always @(*) begin
             else if(function3 == 3'b101)
                 ALU_sel = 4'b1001; //SRA
         end
-        
+    default: ALU_sel  = 4'bXXXX;
     endcase
 end             
 
 endmodule
+
