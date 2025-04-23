@@ -27,4 +27,9 @@ On April 10,2025:
 On April 22, 2025:
   - On 3pm: Started to fix the I type instructions
   - On 3:50pm: Fixed an issue in the control unit that prevents us from reading the I type instructions
+On April 23, 2025:
+  - On 3:30pm, got addi, ori, andi, and xori to work. (a very silly bug was fixed that prevented them for working)
+  - On 4:30pm, got sll, srl, slt, sltu, sra, slti, sltiu to work (a very silly bug was fixed)
+  - On 5:10pm, I finished srai, slli, and srli (all the I type instructions properly working)
+
 
