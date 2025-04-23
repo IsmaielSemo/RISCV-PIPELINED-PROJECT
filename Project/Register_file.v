@@ -21,11 +21,11 @@ module Register_Reset (
     always @(posedge clk or posedge reset) begin
         if (reset) begin
             for (i = 0; i < 32; i = i + 1) begin
-                regFile[i] = 32'b0;
+                regFile[i] <= 32'b0; //was originally =
             end
         end
         else if (RegWrite && write_addr != 0) begin
-            regFile[write_addr] = write_data;
+            regFile[write_addr] <= write_data; //was originally =
         end
     end
 

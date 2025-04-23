@@ -13,7 +13,7 @@ wire cout;
 wire [N-1:0] Bf;
 Nbit_2x1mux #(32) mux(B,~B+1,sel[2],Bf);
 wire [N-1:0] ADD_SUB ;
-wire shift_amount; 
+wire [4:0] shift_amount; 
 assign shift_amount = B[4:0];
 
 N_bit_adder #(32) adder( A, Bf, ADD_SUB,cout);

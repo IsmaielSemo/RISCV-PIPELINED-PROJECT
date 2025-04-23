@@ -12,7 +12,8 @@ wire [1:0] ALUOp;
 wire MemWrite;
 wire ALUSrc;
 wire RegWrite;
-wire jal, jalr, auipc, halt;  
+wire jal, jalr, auipc, halt; 
+wire lui; 
 wire [31:0] imm_out;
 
 wire [31:0] data_in1;
@@ -33,7 +34,7 @@ wire [15:0] signals;
 
 N_Bit_ResetLoad_Register #(32) PC(PC_in , reset, 1'b1, clk, PC_out);
 InstMem Inst ( PC_out[7:2] ,  instruction); //why is PC from 7:2 that's 6 not 5 bits
-ControlUnit CU(instruction [6:2],  MemRead,  MemtoReg,   ALUOp,    MemWrite, ALUSrc,  RegWrite, Branch, jal,jalr,auipc,halt); //why 6:2 not 6:0 as in the figure (og was 6:2)
+ControlUnit CU(instruction [6:2],  MemRead,  MemtoReg,   ALUOp,    MemWrite, ALUSrc,  RegWrite, Branch, jal,jalr,auipc,halt,lui); //why 6:2 not 6:0 as in the figure (og was 6:2)
 ImmGen imm (imm_out, instruction);
         
 Register_Reset RF(clk,reset,RegWrite,instruction [19:15], instruction [24:20], instruction [11:7], WriteData, data_in1, data_in2); //should data_in1 and data_in2 be outputs or inputs (refer to RF module and change over there if necessary)
@@ -47,10 +48,16 @@ DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2], instruction[14:12] ,data_
 wire [31:0] DataOut;
 Nbit_2x1mux #(32) mux2(ALU_Result,data_final,MemtoReg, DataOut);
 
-assign WriteData = (auipc==1)? AUIPC:
-                (jalr==1 || jal==1)? JALR: 
-                (RegWrite == 1 && ALUOp == 2'b11 && ALUSrc ==1)? LUI:
-                 DataOut;
+//assign WriteData = (auipc==1)? AUIPC:
+//                (jalr==1 || jal==1)? JALR: 
+//                (RegWrite == 1 && ALUOp == 2'b11 && ALUSrc ==1)? LUI:
+//                 DataOut;
+assign WriteData =
+                      auipc    ? AUIPC :
+                      (jalr||jal)? JALR :
+                      lui      ? LUI :
+                                 DataOut;
+
                  
 BranchControl branchCntl( Branch, zero_flag, sign_flag, overflow_flag, carry_flag, instruction[6:2] , instruction[14:12] , branch_out);
 
