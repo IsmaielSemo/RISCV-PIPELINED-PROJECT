@@ -10,7 +10,7 @@ module DataMem(
     output reg [31:0] data_out  // 00 = Word, 01 = Halfword, 10 = Byte , 11 = 
 ); //addr was og [5:0]
 
-    reg [7:0] mem [0:255]; // Memory is byte addressable, each entry is 1 byte , it was 64 bits originally
+    reg [7:0] mem [1024-1:0]; // Memory is byte addressable, each entry is 1 byte , it was 64 bits originally , I changed the order from 0:255 tp 255:0
 
     initial begin   
         mem[0] = 8'd20;
@@ -24,7 +24,7 @@ module DataMem(
 
     // Read operation
     always @(*) begin
-        if (MemRead) begin
+    // I deleted if(Memread) not needed 
             case(func3)
                 3'b010: // Word load (4 bytes)
                     data_out = {mem[addr+3], mem[addr+2],mem[addr+1], mem[addr]}; // LW
@@ -40,9 +40,6 @@ module DataMem(
                     ; 
                     //data_out = 32'b0;
                 endcase
-            end
-       else
-                data_out = data_out;
     end
 
     // Write operation
@@ -50,11 +47,11 @@ module DataMem(
         if (MemWrite) begin
             case(func3)
                 3'b010: // SW
-                    {mem[addr+3], mem[addr+2],mem[addr+1], mem[addr]} = data_in; 
+                    {mem[addr+3], mem[addr+2],mem[addr+1], mem[addr]} <= data_in; 
                 3'b001: // SH
-                    {mem[addr+1], mem[addr]} = data_in[15:0]; 
+                    {mem[addr+1], mem[addr]} <= data_in[15:0]; 
                 3'b000: // SB
-                    mem[addr] = data_in[7:0]; 
+                    mem[addr] <= data_in[7:0]; //it's <= not =
                 default:
                     ;
             endcase
