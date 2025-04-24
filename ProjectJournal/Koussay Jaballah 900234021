@@ -34,4 +34,13 @@ April 10th:
 - Debugging the code 
 - Creating testcases
 - Finalized the code and checking the testcases.
-* Submission
+* Submission MS1
+
+April 20th:
+- debugging the code for the instructions not working 
+- checking the data memory and instruction memory
+
+April 24th:
+- corrected the size of the memory to 4kb and the initialization
+- corrrected the data memory reading condition
+- made the = to <= in the writing in data memory
