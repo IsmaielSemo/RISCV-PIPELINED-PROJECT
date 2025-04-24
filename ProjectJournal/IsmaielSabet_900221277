@@ -31,5 +31,7 @@ On April 23, 2025:
   - On 3:30pm, got addi, ori, andi, and xori to work. (a very silly bug was fixed that prevented them for working)
   - On 4:30pm, got sll, srl, slt, sltu, sra, slti, sltiu to work (a very silly bug was fixed)
   - On 5:10pm, I finished srai, slli, and srli (all the I type instructions properly working)
+On April 24, 2025:
+  - On 4pm, finished testing all the load instructions.
 
 
