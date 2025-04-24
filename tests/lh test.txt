@@ -1,0 +1,2 @@
+mem[0] = 32'b00000000000000000001000010000011; //lh x1, 0(x0) -> 2324 because we store 20 and 9 as the low and high 8 bits the halfword respectively so 
+ //we get 9*256 +20 = 2324

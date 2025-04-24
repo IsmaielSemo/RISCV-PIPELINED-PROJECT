@@ -1,0 +1,7 @@
+ mem[0] = 32'b00000000000000000010000010000011; //lw x1, 0(x0)
+
+//Data Memory initialization for lw to work properly (must have the value we want followed by 24 zeros to ensure that we load the correct value):
+ 	mem[0] = 8'd20;
+        mem[1] = 8'd0;
+        mem[2] = 8'd0;
+        mem[3] = 8'd0;

@@ -1,0 +1,1 @@
+mem[0] = 32'b00000000000000000101000010000011; //lhu x1, 0(x0) -> 2324 (same explanation as lh but unsigned)
