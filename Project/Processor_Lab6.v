@@ -42,7 +42,7 @@ Nbit_2x1mux #(32) MUX(data_in2,imm_out,ALUSrc,B);
 ALUControlUnit ALUcontrol(ALUOp,instruction[14:12],instruction[30],ALU_sel); 
 NBitALU #(32) ALU(clk,data_in1,B, ALU_sel,ALU_Result,zero_flag,  overflow_flag , sign_flag, carry_flag );
 //Nbit_2x1mux #(32) mux1(ALU_Result,data_in2,MemtoReg,B);
-DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2], instruction[14:12] ,data_in2 ,data_final);//why ALU_Result [7:2]
+DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2], instruction[14:12] ,data_in2 ,data_final);
 
     
 wire [31:0] DataOut;
