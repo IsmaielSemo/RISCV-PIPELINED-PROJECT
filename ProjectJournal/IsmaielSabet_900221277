@@ -33,5 +33,10 @@ On April 23, 2025:
   - On 5:10pm, I finished srai, slli, and srli (all the I type instructions properly working)
 On April 24, 2025:
   - On 4pm, finished testing all the load instructions.
+On April 26, 2025:
+  - On 2:50pm, started fixing branch instructions.
+  - On 4:35pm, got BEQ and BNE working.
+  - On 5:01 pm, Got all branch instructions working.
+
 
 
