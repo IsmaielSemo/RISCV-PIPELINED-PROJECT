@@ -61,8 +61,7 @@ always @(*) begin
             ALUSrc = 1;     
             RegWrite = 0;
             jal=0; jalr=0; auipc=0; halt=0; 
-            lui = 0;
-               
+            lui = 0;               
         end
 
         5'b11_000: begin  //Branch
@@ -86,7 +85,6 @@ always @(*) begin
             RegWrite = 1;
             jal=0; jalr=0; auipc=1; halt=0;   
             lui = 0;
-     
         end
         5'b01_101: begin  //LUI
             Branch = 0;  

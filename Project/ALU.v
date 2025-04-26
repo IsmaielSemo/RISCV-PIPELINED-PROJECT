@@ -39,12 +39,6 @@ wire [N-1:0] SLTIU;
 assign  SLTIU = ({1'b0, A}<{1'b0, B})?1:0 ; //SLTIU
 
 
-//wire [N-1:0] SLT_SLTU_SLTI_SLTIU;
-//assign  SLT_SLTU_SLTI_SLTIU = (A<B)?1:0 ; // Also SLTIU
-
-
-
-//mux16x1 #(32) mux6(AND,OR,ADD_SUB,ADD_SUB,sel,result);
 
 always @(*) begin
     case(sel)
@@ -67,7 +61,6 @@ assign sign_flag = (result[N-1] == 1)?1'b1: 1'b0;
 assign overflow_flag = (A[N-1] ^ (~B[N-1]) ^ ADD_SUB[N-1] ^ cout);
 assign carry_flag = cout;
 
-//assign overflow_flag = (result == 0)?1'b1: 1'b0;
-//assign carry_flag = (result == 0)?1'b1: 1'b0;
+
 
 endmodule

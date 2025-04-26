@@ -32,9 +32,9 @@ always@(*) begin
             else if(function3 == 3'b001)
                 Decision = !Zero; //BNE
             else if(function3 == 3'b100)
-                Decision = (Sign != Zero); //BLT
+                Decision = (Sign != Overflow); //BLT
             else if(function3 == 3'b101)
-                Decision = (Sign == Zero); //BGE
+                Decision = (Sign == Overflow); //BGE
             else if(function3 == 3'b110)
                 Decision = !Carry; //BLTU
             else if(function3 == 3'b111)

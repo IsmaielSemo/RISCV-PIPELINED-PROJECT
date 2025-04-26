@@ -15,7 +15,6 @@ wire RegWrite;
 wire jal, jalr, auipc, halt; 
 wire lui; 
 wire [31:0] imm_out;
-
 wire [31:0] data_in1;
 wire [31:0] data_in2;
 wire zero_flag, branch_out;
@@ -48,10 +47,6 @@ DataMem data_mem(clk,MemRead,MemWrite,ALU_Result[7:2], instruction[14:12] ,data_
 wire [31:0] DataOut;
 Nbit_2x1mux #(32) mux2(ALU_Result,data_final,MemtoReg, DataOut);
 
-//assign WriteData = (auipc==1)? AUIPC:
-//                (jalr==1 || jal==1)? JALR: 
-//                (RegWrite == 1 && ALUOp == 2'b11 && ALUSrc ==1)? LUI:
-//                 DataOut;
 assign WriteData =
                       auipc    ? AUIPC :
                       (jalr||jal)? JALR :
@@ -61,15 +56,15 @@ assign WriteData =
                  
 BranchControl branchCntl( Branch, zero_flag, sign_flag, overflow_flag, carry_flag, instruction[6:2] , instruction[14:12] , branch_out);
 
-wire [31:0] shifted_imm_out;
-Nbit_shift_left #(32) shift(imm_out,shifted_imm_out);
+wire [31:0] shifted_imm_out; //since it is not used anymore we might need to remove it (because it causes immediate = 2 * immediate so instead of branch by 3 we branch by 6)
+Nbit_shift_left #(32) shift(imm_out,shifted_imm_out); //might need to be removed
 
 wire [31:0] LUI;
 Nbit_shift_left_12 #(32) shift12(imm_out,LUI);
 
 wire [31:0] shifted;
-Nbit_2x1mux #(32) mux_shift(shifted_imm_out,LUI,auipc, shifted);
-
+//Nbit_2x1mux #(32) mux_shift(shifted_imm_out,LUI,auipc, shifted); 
+Nbit_2x1mux #(32) mux_shift(imm_out,LUI,auipc, shifted);
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
 N_bit_adder #(32) add2( shifted, PC_out, Sum);
 
@@ -80,12 +75,19 @@ assign JAL = add4;
 assign JALR = add4;
 
 
-assign last_sel = zero_flag & Branch;
+//assign last_sel = zero_flag & Branch; not needed for branch detection
 assign PC_in = (auipc==1)? AUIPC:
                 (jalr==1)? JALR: 
-                (zero_flag & Branch == 1)? Sum:
+                (Branch && branch_out)? Sum:
                  add4;
-Nbit_2x1mux #(32) mux3(add4,Sum, last_sel,PC_in);
+//Nbit_2x1mux #(32) mux3(add4,Sum, last_sel,PC_in);
+
+
+
+
+
+
+
 
 assign signals ={2'b00,ALUOp,ALU_Result,zero_flag,last_sel,Branch,MemRead,MemtoReg,MemWrite,ALUSrc,RegWrite};
 always@(*)begin
@@ -107,7 +109,7 @@ end
             4'b0101: ssd = data_in1;     
             4'b0110: ssd = WriteData;           
             4'b0111: ssd = imm_out;     
-            4'b1000: ssd = shifted_imm_out;   
+            4'b1000: ssd = shifted_imm_out; //potentially just imm_out  
             4'b1001: ssd = B;     
             4'b1010: ssd = ALU_Result;      
             4'b1011: ssd = data_final;          
