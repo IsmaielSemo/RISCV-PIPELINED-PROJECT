@@ -37,6 +37,10 @@ On April 26, 2025:
   - On 2:50pm, started fixing branch instructions.
   - On 4:35pm, got BEQ and BNE working.
   - On 5:01 pm, Got all branch instructions working.
+On April 27, 2025:
+  - On 10:20 am, finished the pause/halt instructions
+  - On 11:30 am, got LUI to work properly
+  - On 12:40 am, finished AUIPC, JAL, and JALR (kinda as they work correctly if and only if they are followed by a halt. If they’re not followed by a halt, then the correct value is loaded temporarily before it gets recomputed every clock cycle (or couple of clock cycles). I do not understand why that happens.)
 
 
 
