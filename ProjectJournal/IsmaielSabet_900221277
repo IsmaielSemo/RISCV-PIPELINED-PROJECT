@@ -41,6 +41,8 @@ On April 27, 2025:
   - On 10:20 am, finished the pause/halt instructions
   - On 11:30 am, got LUI to work properly
   - On 12:40 am, finished AUIPC, JAL, and JALR (kinda as they work correctly if and only if they are followed by a halt. If they’re not followed by a halt, then the correct value is loaded temporarily before it gets recomputed every clock cycle (or couple of clock cycles). I do not understand why that happens.)
-
+On April 29, 2025:
+  - On 10pm, started developing the pipelined datapath
+  - On 11:30pm, finished first three stages of the datapath.
 
 
