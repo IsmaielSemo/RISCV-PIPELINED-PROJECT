@@ -46,5 +46,9 @@ On April 29, 2025:
   - On 11:30pm, finished first three stages of the datapath.
 On April 30, 2025:
   - On 3:35pm, finished the pipelined datapath
+  - On 4:00pm, started pipelined code
+  - On 4:55pm, finished IF stage without any hazard detection/forwarding and without single memory (I put references for myself to return to)
+  - On 5:30pm, finished ID stage without any hazard detection/forwarding/ flushing (I put references for myself to return to)
+
 
 
