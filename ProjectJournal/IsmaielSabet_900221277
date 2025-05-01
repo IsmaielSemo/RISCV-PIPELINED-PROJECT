@@ -49,6 +49,10 @@ On April 30, 2025:
   - On 4:00pm, started pipelined code
   - On 4:55pm, finished IF stage without any hazard detection/forwarding and without single memory (I put references for myself to return to)
   - On 5:30pm, finished ID stage without any hazard detection/forwarding/ flushing (I put references for myself to return to)
+On May 1, 2025:
+  - On 2:15pm, finished the EX stage without including any flushing
+  - On 4:17pm, finished a working version of the single memory (size is 4KB + reading from text file for instructions + load instructions reading with 128 offset)
+
 
 
 
