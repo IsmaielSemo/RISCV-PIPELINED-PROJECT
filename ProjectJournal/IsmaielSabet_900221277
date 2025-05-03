@@ -52,6 +52,9 @@ On April 30, 2025:
 On May 1, 2025:
   - On 2:15pm, finished the EX stage without including any flushing
   - On 4:17pm, finished a working version of the single memory (size is 4KB + reading from text file for instructions + load instructions reading with 128 offset)
+On May 3, 2025:
+  - On 4:15pm, finished the MEM stage (no forwarding).
+  - On 4:50pm, finished the WB stage (no forwarding unit implemented) 
 
 
 
