@@ -55,6 +55,9 @@ On May 1, 2025:
 On May 3, 2025:
   - On 4:15pm, finished the MEM stage (no forwarding).
   - On 4:50pm, finished the WB stage (no forwarding unit implemented) 
+  - On 9:30pm, got the forwarding from experiment2 lab8 to work (will be needed for pipelining)
+  - On 11:50pm, got the hazard detection unit (somewhat working as I am not quite sure) (will be needed for pipelining)
+
 
 
 
