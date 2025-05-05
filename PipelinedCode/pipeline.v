@@ -79,9 +79,9 @@ wire [31:0] MEM_WB_JALR;
 
 //IF stage
 
-NbitRegister #(32) PC(PC_in , reset, !stall, clk, PC_out);
 
 
+NbitRegister #(32) PC(PC_in , reset, halt , clk, PC_out);
 
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
 
@@ -90,10 +90,10 @@ assign flush_IF_ID = (branch_out | reset)? (32'd0) : data_final;
 NbitRegister #(96) IF_ID (
         .D({PC_out, add4, flush_IF_ID}),
         .rst(reset),
-        .load(!stall),
+        .load(1'b1),
         .clk(~clk),
         .Q({IF_ID_PC, IF_ID_PCadd4, IF_ID_Inst})
-    ); //should it be ~clk
+    ); 
 
 
 
@@ -107,9 +107,8 @@ ImmGen imm (imm_out, IF_ID_Inst);
         
 Register_Reset RF(clk,reset,MEM_WB_Ctrl[0],IF_ID_Inst [19:15], IF_ID_Inst [24:20], MEM_WB_Rd, WriteData, data_in1, data_in2); //MEM_WB_Rd is IF_ID_INST[11:7]
 
-HazardControlUnit HazardUnit( IF_ID_Inst[19:15], IF_ID_Inst[24:20], ID_EX_Rd,ID_EX_Ctrl[6] /*Memread*/, stall);
-assign  PCWrite =stall;
-assign flush_ID_EX = (branch_out |stall) ? 12'd0: {jal,jalr,auipc,halt,lui,Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite} ;
+//HazardControlUnit HazardUnit( IF_ID_Inst[19:15], IF_ID_Inst[24:20], ID_EX_Rd,ID_EX_Ctrl[6] /*Memread*/, stall);
+assign flush_ID_EX = (branch_out | reset) ? 12'd0: {jal,jalr,auipc,halt,lui,Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite} ;
 
 
 NbitRegister #(300) ID_EX (
@@ -169,36 +168,37 @@ assign JALR = EX_MEM_PCadd4; //add4
 //assign PC_in = (EX_MEM_Ctrl[7]==1)? AUIPC:
 //                (EX_MEM_Ctrl[8]==1)? JALR: 
 //                (EX_MEM_Ctrl[2] /*Branch*/ && branch_out)? EX_MEM_BranchAddOut:
-//                 EX_MEM_PCadd4; //add4
-//should PC_in be computed like this or through an always block (like lab 7)?
-
-//always @(*) begin
-//    if (EX_MEM_Ctrl[7] == 1'b1)
-//        PC_in = AUIPC;  // auipc
-//    else if (EX_MEM_Ctrl[8] == 1'b1)
-//        PC_in = JALR;  
-//    else if (EX_MEM_Ctrl[2] && branch_out)
-//        PC_in = EX_MEM_BranchAddOut;  // taken branch
-//    else
-//        PC_in = EX_MEM_PCadd4;  // PC+4 (sequential execution)
-//end
+//                 add4; //EX_MEM_PCADD4 (PC+4)
 
 
-always @(posedge clk or posedge reset) begin
-    if (reset) begin
-        PC_in <= 32'd0;  // Reset PC to 0
-    end else begin
-        // PC selection logic
-        if (EX_MEM_Ctrl[7] == 1'b1)
-            PC_in <= AUIPC;  // auipc
-        else if (EX_MEM_Ctrl[8] == 1'b1)
-            PC_in <= JALR;   // jalr
-        else if (EX_MEM_Ctrl[2] && branch_out)
-            PC_in <= EX_MEM_BranchAddOut;  // taken branch
-        else
-            PC_in <= EX_MEM_PCadd4;  // PC+4 (sequential execution)
-    end
+always @(*) begin
+    if (EX_MEM_Ctrl[7] == 1'b1)
+        PC_in = AUIPC;  // auipc
+    else if (EX_MEM_Ctrl[8] == 1'b1)
+        PC_in = JALR;  
+    else if (EX_MEM_Ctrl[2] && branch_out)
+        PC_in = EX_MEM_BranchAddOut;  // taken branch
+    else
+        PC_in = add4;  // (/EX_MEM_PCADD4) PC+4 (sequential execution)
 end
+
+
+
+//always @(posedge clk or posedge reset) begin
+//    if (reset) begin
+//        PC_in <= 32'd0;  // Reset PC to 0
+//    end else begin
+//        // PC selection logic
+//        if (EX_MEM_Ctrl[7] == 1'b1)
+//            PC_in <= AUIPC;  // auipc
+//        else if (EX_MEM_Ctrl[8] == 1'b1)
+//            PC_in <= JALR;   // jalr
+//        else if (EX_MEM_Ctrl[2] && branch_out)
+//            PC_in <= EX_MEM_BranchAddOut;  // taken branch
+//        else
+//            PC_in <= EX_MEM_PCadd4;  // PC+4 (sequential execution)
+//    end
+//end
 
 NbitRegister #(300) MEM_WB (
         .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,EX_MEM_BranchAddOut,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]}),
