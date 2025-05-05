@@ -4,7 +4,7 @@ module pipeline(input clk,reset,  input [1:0] ledSel,
     input [3:0] ssdSel,
     output reg [15:0] leds, output reg [12:0] ssd );
 
-wire [31:0] instruction; // WE WILL HAVE TO GET IT FROM THE DATA MEM BECAUSE ONE MEMORY
+
 wire Branch; //M
 wire Mem; //M
 wire MemtoReg; //WB
@@ -38,10 +38,13 @@ wire [31:0] AUIPC,JAL,JALR;
 //assign AUIPC = PC_out + LUI;
 //assign JAL = add4;
 //assign JALR = add4;
+
+
 //IF/ID
 wire [31:0] IF_ID_PC;
 wire [31:0] IF_ID_PCadd4;
 wire [31:0] IF_ID_Inst;
+wire [31:0] flush_IF_ID;
 
 //ID/EX
 wire [31:0] ID_EX_PC, ID_EX_RegR1, ID_EX_RegR2, ID_EX_Imm, ID_EX_PCadd4;
@@ -49,6 +52,7 @@ wire [12:0] ID_EX_Ctrl;
 wire [3:0] ID_EX_Func;
 wire [4:0] ID_EX_Rs1, ID_EX_Rs2, ID_EX_Rd;
 wire [4:0] ID_EX_Opcode;
+ wire [11:0] flush_ID_EX;  
     
 //EX/MEM
 wire [31:0] EX_MEM_BranchAddOut, EX_MEM_ALU_out, EX_MEM_RegR2; 
@@ -63,6 +67,7 @@ wire EX_MEM_PCadd4;
 wire [3:0] EX_MEM_funct;
 wire [4:0] EX_MEM_Opcode;
 wire [31:0] EX_MEM_PC;
+ wire [9:0] flush_EX_MEM; 
     
 //MEM/WB    
 wire [31:0] MEM_WB_Mem_out, MEM_WB_ALU_out;
@@ -78,18 +83,22 @@ wire [31:0] MEM_WB_JALR;
 
 //IF stage
 
-N_Bit_ResetLoad_Register #(32) PC(PC_in , reset, stall, clk, PC_out);
+N_Bit_ResetLoad_Register #(32) PC(PC_in , reset, !stall, clk, PC_out);
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
-//
-//We will need to flush here
-//
+
+assign flush_IF_ID = (branch_out | reset)? (32'd0) : data_final; 
+
 NbitRegister #(96) IF_ID (
-        .D({PC_out, add4, instruction}),
+        .D({PC_out, add4, flush_IF_ID}),
         .rst(reset),
-        .load(1'b1),
-        .clk(clk),
+        .load(!stall),
+        .clk(~clk),
         .Q({IF_ID_PC, IF_ID_PCadd4, IF_ID_Inst})
-    ); //should we update clk to be some other value (maybe even ~clk)
+    ); //should it be ~clk
+
+
+
+
     
     
 //ID stage
@@ -97,24 +106,27 @@ NbitRegister #(96) IF_ID (
 ControlUnit CU(IF_ID_Inst[6:2],  MemRead,  MemtoReg,   ALUOp,    MemWrite, ALUSrc,  RegWrite, Branch, jal,jalr,auipc,halt,lui);
 ImmGen imm (imm_out, IF_ID_Inst);
         
-Register_Reset RF(clk,reset,MEM_WB_Ctrl[0],IF_ID_Inst [19:15], IF_ID_Inst [24:20], IF_ID_Inst [11:7], WriteData, data_in1, data_in2); //We will change regwrite and maybe [11:7] to be from MEM/WB
-//
-//Add flush control here (with the control signals being 0 and whatnot)
-//
+Register_Reset RF(clk,reset,MEM_WB_Ctrl[0],IF_ID_Inst [19:15], IF_ID_Inst [24:20], MEM_WB_Rd, WriteData, data_in1, data_in2); //MEM_WB_Rd is IF_ID_INST[11:7]
 
-NbitRegister #(192) ID_EX (
-        .D({IF_ID_PC,IF_ID_PCadd4, data_in1, data_in2, imm_out, IF_ID_Inst[6:2], IF_ID_Inst[30], IF_ID_Inst[14:12], IF_ID_Inst[19:15], IF_ID_Inst[24:20], IF_ID_Inst[11:7],jal,jalr,auipc,halt,lui, Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite}),
+HazardControlUnit HazardUnit( IF_ID_Inst[19:15], IF_ID_Inst[24:20], ID_EX_Rd,ID_EX_Ctrl[6] /*Memread*/, stall);
+assign  PCWrite =stall;
+assign flush_ID_EX = (branch_out |stall) ? 12'd0: {jal,jalr,auipc,halt,lui,Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite} ;
+
+
+NbitRegister #(196) ID_EX (
+        .D({IF_ID_PC,IF_ID_PCadd4, data_in1, data_in2, imm_out, IF_ID_Inst[6:2], IF_ID_Inst[30], IF_ID_Inst[14:12], IF_ID_Inst[19:15], IF_ID_Inst[24:20], IF_ID_Inst[11:7],flush_ID_EX}),
         .rst(reset),
         .load(1'b1),
         .clk(clk),
         .Q({ID_EX_PC,ID_EX_PCadd4, ID_EX_RegR1, ID_EX_RegR2, ID_EX_Imm, ID_EX_Opcode, ID_EX_Func, ID_EX_Rs1, ID_EX_Rs2, ID_EX_Rd, ID_EX_Ctrl})
-    ); //How will we handle the control signals (we could leave them like this or do them like a variable) + 192 is the real value (200 for safekeeping)
+    ); 
+
+
+
 
 
 //EX stage
 
-
-//ForwardingUnit FU(ID_EX_Rs1,ID_EX_Rs2,EX_MEM_Rd,MEM_WB_Rd,EX_MEM_Ctrl[3], MEM_WB_Ctrl[0],forwardA, forwardB );
 mux4x2 #(32) F1 (ID_EX_RegR1,WriteData,EX_MEM_ALU_out,32'b0, forwardA,ALU_in1);  //EX_MEM_ALU_out might be 32'b0 + We don't have a MUX4x2
 mux4x2 #(32) F2 (ID_EX_RegR2,WriteData,EX_MEM_ALU_out,32'b0, forwardB,ALU_in2); ////EX_MEM_ALU_out might be 32'b0
 
@@ -126,18 +138,18 @@ mux4x2 #(32) F2 (ID_EX_RegR2,WriteData,EX_MEM_ALU_out,32'b0, forwardB,ALU_in2); 
     );
 
 
-ALUControlUnit ALUcontrol(ID_EX_Ctrl[4:3],ID_EX_Func[2:0],ID_EX_Func[3],ALU_sel); 
+ALUControlUnit ALUcontrol(ID_EX_Ctrl[4:3],ID_EX_Func[2:0],ID_EX_Func[3],ALU_sel);  //first parameter not really needed
 NBitALU #(32) ALU(clk,ALU_in1,B, ALU_sel,ALU_Result,zero_flag,  overflow_flag , sign_flag, carry_flag );
 N_bit_adder #(32) add2(ID_EX_Imm,ID_EX_PC, branchAdder); //We don't need other conditions like before as imm_generator already does the shifting for us
+assign flush_EX_MEM = (branch_out)? 10'd0: {ID_EX_Ctrl[12]/*jal*/,ID_EX_Ctrl[11] /*jalr*/,ID_EX_Ctrl[10] /*auipc*/,ID_EX_Ctrl[9] /*halt*/,ID_EX_Ctrl[8] /*lui*/ ,ID_EX_Ctrl[5]/*Memtoreg*/, ID_EX_Ctrl[0]/*Regwrite*/, ID_EX_Ctrl[7]/*Branch*/, ID_EX_Ctrl[6]/*MemRead*/, ID_EX_Ctrl[2]/*Memwrite*/} ;
 
-
-NbitRegister #(107) EX_MEM (
-        .D({branchAdder, ALU_Result, zero_flag, overflow_flag, sign_flag, carry_flag,ID_EX_Imm,ID_EX_PCadd4,ID_EX_Func,ID_EX_Opcode, ID_EX_PC, ALU_in2, ID_EX_Rd,ID_EX_Ctrl[12]/*jal*/,ID_EX_Ctrl[11] /*jalr*/,ID_EX_Ctrl[10] /*auipc*/,ID_EX_Ctrl[9] /*halt*/,ID_EX_Ctrl[8] /*lui*/ ,ID_EX_Ctrl[5]/*Memtoreg*/, ID_EX_Ctrl[0]/*Regwrite*/, ID_EX_Ctrl[7]/*Branch*/, ID_EX_Ctrl[6]/*MemRead*/, ID_EX_Ctrl[2]/*Memwrite*/}),
+NbitRegister #(217) EX_MEM (
+        .D({branchAdder, ALU_Result, zero_flag, overflow_flag, sign_flag, carry_flag,ID_EX_Imm,ID_EX_PCadd4,ID_EX_Func,ID_EX_Opcode, ID_EX_PC, ALU_in2, ID_EX_Rd,flush_EX_MEM}),
         .rst(reset),
         .load(1'b1),
-        .clk(clk),
+        .clk(~clk),
         .Q({EX_MEM_BranchAddOut, EX_MEM_ALU_out, EX_MEM_Zero, EX_MEM_Overflow,EX_MEM_Sign, EX_MEM_Carry,EX_MEM_Imm,EX_MEM_PCadd4,EX_MEM_funct, EX_MEM_Opcode, EX_MEM_PC, EX_MEM_RegR2, EX_MEM_Rd, EX_MEM_Ctrl})
-    ); //should it be ~clk + should i only send ID_EX_funct [2:0] + we're missing a flushed value + recalculate register size
+    ); //should it be ~clk + recalculate register size
 
 
     
@@ -146,24 +158,22 @@ NbitRegister #(107) EX_MEM (
 
 
 //EX_MEM_PC is PC_out
-Memory mem (.addr({EX_MEM_ALU_out[6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[0]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final));//consider making data_final something else
-
-
-
+Memory mem (.addr({EX_MEM_ALU_out[6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[1]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final));
 
 
 BranchControl branchCntl( EX_MEM_Ctrl[2] /*branch*/, EX_MEM_Zero, EX_MEM_Sign, EX_MEM_Overflow, EX_MEM_Carry, EX_MEM_Opcode, EX_MEM_funct [2:0] , branch_out);
 assign AUIPC = EX_MEM_PC + EX_MEM_Imm; //PC_out + LUI
 assign JAL = EX_MEM_PCadd4; //add4
 assign JALR = EX_MEM_PCadd4; //add4
-N_bit_adder #(32) branchJump( EX_MEM_Imm, EX_MEM_PC, branchAdder); //PC_out + shifted_imm
+//N_bit_adder #(32) branchJump( EX_MEM_Imm, EX_MEM_PC, branchAdder); //PC_out + shifted_imm
 assign PC_in = (EX_MEM_Ctrl[7]==1)? AUIPC:
                 (EX_MEM_Ctrl[8]==1)? JALR: 
-                (EX_MEM_Ctrl[2] /*Branch*/ && branch_out)? branchAdder:
+                (EX_MEM_Ctrl[2] /*Branch*/ && branch_out)? EX_MEM_BranchAddOut:
                  EX_MEM_PCadd4; //add4
+//should PC_in be computed like this or through an always block (like lab 7)?
 
-NbitRegister #(200) MEM_WB (
-        .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,branchAdder,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]}),
+NbitRegister #(270) MEM_WB (
+        .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,EX_MEM_BranchAddOut,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]}),
         .rst(reset),
         .load(1'b1),
         .clk(clk),
@@ -186,7 +196,7 @@ assign WriteData =
                       MEM_WB_Ctrl[2]      ? MEM_WB_Imm :
                                  DataOut;
                                  
-//ForwardingUnit FU(ID_EX_Rs1,ID_EX_Rs2,EX_MEM_Rd,MEM_WB_Rd,EX_MEM_Ctrl[3], MEM_WB_Ctrl[0],forwardA, forwardB );                               
+ForwardingUnit FU(ID_EX_Rs1,ID_EX_Rs2,EX_MEM_Rd,MEM_WB_Rd,EX_MEM_Ctrl[3], MEM_WB_Ctrl[0],forwardA, forwardB );                               
 
 
 
