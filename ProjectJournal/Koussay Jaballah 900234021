@@ -44,3 +44,12 @@ April 24th:
 - corrected the size of the memory to 4kb and the initialization
 - corrrected the data memory reading condition
 - made the = to <= in the writing in data memory
+April 29th:
+- Adding pipeline registers
+- Editing the main module 
+May 1st:
+- Adding pipeline registers
+- Editing main module 
+May 5th:
+- Last Edits 
+- Some bugs correction
