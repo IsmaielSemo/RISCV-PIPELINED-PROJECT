@@ -1,8 +1,6 @@
 `timescale 1ns / 1ps
 
-module pipeline(input clk,reset,  input [1:0] ledSel,
-    input [3:0] ssdSel,
-    output reg [15:0] leds, output reg [12:0] ssd );
+module pipeline(input clk,reset);
 
 
 wire Branch; //M
@@ -25,19 +23,17 @@ wire  [3:0] ALU_sel;
 wire [31:0] B;
 wire [31:0] data_final;
 wire [31:0] WriteData;
-wire [31:0] PC_in;
+//wire [31:0] PC_in;
+reg [31:0] PC_in;
 wire cout;
 wire [31:0] branchAdder, add4;
 wire last_sel;
 wire [31:0] PC_out;
-wire [15:0] signals;
 wire stall;
 wire forwardA;
 wire forwardB;
 wire [31:0] AUIPC,JAL,JALR;
-//assign AUIPC = PC_out + LUI;
-//assign JAL = add4;
-//assign JALR = add4;
+
 
 
 //IF/ID
@@ -67,7 +63,7 @@ wire EX_MEM_PCadd4;
 wire [3:0] EX_MEM_funct;
 wire [4:0] EX_MEM_Opcode;
 wire [31:0] EX_MEM_PC;
- wire [9:0] flush_EX_MEM; 
+wire [9:0] flush_EX_MEM; 
     
 //MEM/WB    
 wire [31:0] MEM_WB_Mem_out, MEM_WB_ALU_out;
@@ -83,7 +79,10 @@ wire [31:0] MEM_WB_JALR;
 
 //IF stage
 
-N_Bit_ResetLoad_Register #(32) PC(PC_in , reset, !stall, clk, PC_out);
+NbitRegister #(32) PC(PC_in , reset, !stall, clk, PC_out);
+
+
+
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
 
 assign flush_IF_ID = (branch_out | reset)? (32'd0) : data_final; 
@@ -113,7 +112,7 @@ assign  PCWrite =stall;
 assign flush_ID_EX = (branch_out |stall) ? 12'd0: {jal,jalr,auipc,halt,lui,Branch, MemRead, MemtoReg, ALUOp, MemWrite, ALUSrc, RegWrite} ;
 
 
-NbitRegister #(196) ID_EX (
+NbitRegister #(300) ID_EX (
         .D({IF_ID_PC,IF_ID_PCadd4, data_in1, data_in2, imm_out, IF_ID_Inst[6:2], IF_ID_Inst[30], IF_ID_Inst[14:12], IF_ID_Inst[19:15], IF_ID_Inst[24:20], IF_ID_Inst[11:7],flush_ID_EX}),
         .rst(reset),
         .load(1'b1),
@@ -127,8 +126,8 @@ NbitRegister #(196) ID_EX (
 
 //EX stage
 
-mux4x2 #(32) F1 (ID_EX_RegR1,WriteData,EX_MEM_ALU_out,32'b0, forwardA,ALU_in1);  //EX_MEM_ALU_out might be 32'b0 + We don't have a MUX4x2
-mux4x2 #(32) F2 (ID_EX_RegR2,WriteData,EX_MEM_ALU_out,32'b0, forwardB,ALU_in2); ////EX_MEM_ALU_out might be 32'b0
+mux4x2 #(32) F1 (ID_EX_RegR1,DataOut,32'b0,32'b0, forwardA,ALU_in1);  //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory 
+mux4x2 #(32) F2 (ID_EX_RegR2,DataOut,32'b0,32'b0, forwardB,ALU_in2); //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory
 
      Nbit_2x1mux #(32) ALU_2ndInput (
         ALU_in2, 
@@ -143,42 +142,71 @@ NBitALU #(32) ALU(clk,ALU_in1,B, ALU_sel,ALU_Result,zero_flag,  overflow_flag , 
 N_bit_adder #(32) add2(ID_EX_Imm,ID_EX_PC, branchAdder); //We don't need other conditions like before as imm_generator already does the shifting for us
 assign flush_EX_MEM = (branch_out)? 10'd0: {ID_EX_Ctrl[12]/*jal*/,ID_EX_Ctrl[11] /*jalr*/,ID_EX_Ctrl[10] /*auipc*/,ID_EX_Ctrl[9] /*halt*/,ID_EX_Ctrl[8] /*lui*/ ,ID_EX_Ctrl[5]/*Memtoreg*/, ID_EX_Ctrl[0]/*Regwrite*/, ID_EX_Ctrl[7]/*Branch*/, ID_EX_Ctrl[6]/*MemRead*/, ID_EX_Ctrl[2]/*Memwrite*/} ;
 
-NbitRegister #(217) EX_MEM (
+NbitRegister #(300) EX_MEM (
         .D({branchAdder, ALU_Result, zero_flag, overflow_flag, sign_flag, carry_flag,ID_EX_Imm,ID_EX_PCadd4,ID_EX_Func,ID_EX_Opcode, ID_EX_PC, ALU_in2, ID_EX_Rd,flush_EX_MEM}),
         .rst(reset),
         .load(1'b1),
         .clk(~clk),
         .Q({EX_MEM_BranchAddOut, EX_MEM_ALU_out, EX_MEM_Zero, EX_MEM_Overflow,EX_MEM_Sign, EX_MEM_Carry,EX_MEM_Imm,EX_MEM_PCadd4,EX_MEM_funct, EX_MEM_Opcode, EX_MEM_PC, EX_MEM_RegR2, EX_MEM_Rd, EX_MEM_Ctrl})
-    ); //should it be ~clk + recalculate register size
+    ); 
+
+
 
 
     
 //MEM stage   
 
 
-
-//EX_MEM_PC is PC_out
-Memory mem (.addr({EX_MEM_ALU_out[6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[1]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final));
+Memory mem (.addr({EX_MEM_ALU_out[6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[1]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final)); //EX_MEM_PC is PC_out
 
 
 BranchControl branchCntl( EX_MEM_Ctrl[2] /*branch*/, EX_MEM_Zero, EX_MEM_Sign, EX_MEM_Overflow, EX_MEM_Carry, EX_MEM_Opcode, EX_MEM_funct [2:0] , branch_out);
 assign AUIPC = EX_MEM_PC + EX_MEM_Imm; //PC_out + LUI
 assign JAL = EX_MEM_PCadd4; //add4
 assign JALR = EX_MEM_PCadd4; //add4
+
 //N_bit_adder #(32) branchJump( EX_MEM_Imm, EX_MEM_PC, branchAdder); //PC_out + shifted_imm
-assign PC_in = (EX_MEM_Ctrl[7]==1)? AUIPC:
-                (EX_MEM_Ctrl[8]==1)? JALR: 
-                (EX_MEM_Ctrl[2] /*Branch*/ && branch_out)? EX_MEM_BranchAddOut:
-                 EX_MEM_PCadd4; //add4
+//assign PC_in = (EX_MEM_Ctrl[7]==1)? AUIPC:
+//                (EX_MEM_Ctrl[8]==1)? JALR: 
+//                (EX_MEM_Ctrl[2] /*Branch*/ && branch_out)? EX_MEM_BranchAddOut:
+//                 EX_MEM_PCadd4; //add4
 //should PC_in be computed like this or through an always block (like lab 7)?
 
-NbitRegister #(270) MEM_WB (
+//always @(*) begin
+//    if (EX_MEM_Ctrl[7] == 1'b1)
+//        PC_in = AUIPC;  // auipc
+//    else if (EX_MEM_Ctrl[8] == 1'b1)
+//        PC_in = JALR;  
+//    else if (EX_MEM_Ctrl[2] && branch_out)
+//        PC_in = EX_MEM_BranchAddOut;  // taken branch
+//    else
+//        PC_in = EX_MEM_PCadd4;  // PC+4 (sequential execution)
+//end
+
+
+always @(posedge clk or posedge reset) begin
+    if (reset) begin
+        PC_in <= 32'd0;  // Reset PC to 0
+    end else begin
+        // PC selection logic
+        if (EX_MEM_Ctrl[7] == 1'b1)
+            PC_in <= AUIPC;  // auipc
+        else if (EX_MEM_Ctrl[8] == 1'b1)
+            PC_in <= JALR;   // jalr
+        else if (EX_MEM_Ctrl[2] && branch_out)
+            PC_in <= EX_MEM_BranchAddOut;  // taken branch
+        else
+            PC_in <= EX_MEM_PCadd4;  // PC+4 (sequential execution)
+    end
+end
+
+NbitRegister #(300) MEM_WB (
         .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,EX_MEM_BranchAddOut,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]}),
         .rst(reset),
         .load(1'b1),
         .clk(clk),
         .Q({MEM_WB_Mem_out, MEM_WB_ALU_out, MEM_WB_Imm, MEM_WB_Branch,MEM_WB_PCadd4, MEM_WB_AUIPC, MEM_WB_JALR, MEM_WB_Rd, MEM_WB_Ctrl})
-    ); //200 is a temp value
+    ); 
 
 
 //ID_EX_CTRL:           jal jalr auipc halt lui Branch MemRead MemtoReg ALUOp MemWrite ALUSrc RegWrite                                                                     
@@ -199,63 +227,5 @@ assign WriteData =
 ForwardingUnit FU(ID_EX_Rs1,ID_EX_Rs2,EX_MEM_Rd,MEM_WB_Rd,EX_MEM_Ctrl[3], MEM_WB_Ctrl[0],forwardA, forwardB );                               
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//assign signals ={2'b00,ALUOp,ALU_Result,zero_flag,last_sel,Branch,MemRead,MemtoReg,MemWrite,ALUSrc,RegWrite};
-//always@(*)begin
-//case(ledSel)
-//2'b00:leds =instruction[15:0];
-//2'b01:leds =instruction[31:16];
-//2'b10:leds =signals;
-//2'b11:leds =15'd0;
-//endcase 
-//end 
-
-// always @(*) begin
-//        case(ssdSel)
-//            4'b0000: ssd = PC_out;               
-//            4'b0001: ssd = add4;       
-//            4'b0010: ssd = branchAdder;    
-//            4'b0011: ssd = PC_in;            
-//            4'b0100: ssd = data_in1;     
-//            4'b0101: ssd = data_in1;     
-//            4'b0110: ssd = WriteData;           
-//            4'b0111: ssd = imm_out;     
-//            4'b1000: ssd = imm_out; //was originally shifted_imm_out  
-//            4'b1001: ssd = B;     
-//            4'b1010: ssd = ALU_Result;      
-//            4'b1011: ssd = data_final;          
-//            default: ssd = 13'd0;                  
-//        endcase
-//    end
-
-//    always @(*) begin
-//        leds = {ledSel, 14'b0};  
-//    end
-    
     
 endmodule

@@ -24,8 +24,7 @@ module Memory(input [13:0] addr, input [31:0] data_in, input[2:0]func3, input cl
 reg [7:0] mem [0:(4*1024-1)]; //This implementation of the memory is different from what's in the project support, but it's just an extended one of our MS2 submission
 reg [31:0] temp [0:31]; //for the instructions
 initial begin
-        $readmemh("C:/Users/ismai/Desktop/TestCase.txt", temp); //create proper folder later
-        // or use this C:/Users/ismai/Desktop/TestCases/testCaseDemo.hex
+        $readmemh("C:/Users/ismai/OneDrive/Desktop/TestCases/TestCase1.hex", temp); //create proper folder later
     end
 integer i;
 initial begin
