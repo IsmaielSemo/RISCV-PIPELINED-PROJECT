@@ -18,11 +18,11 @@ wire [31:0] data_in1;
 wire [31:0] data_in2;
 wire zero_flag, branch_out;
 wire carry_flag, overflow_flag, sign_flag;
-wire [31:0] ALU_Result;
+wire [31:0] ALU_Result, ALU_in2;
 wire  [3:0] ALU_sel;
 wire [31:0] B;
 wire [31:0] data_final;
-wire [31:0] WriteData;
+reg [31:0] WriteData;
 //wire [31:0] PC_in;
 reg [31:0] PC_in;
 wire cout;
@@ -30,8 +30,8 @@ wire [31:0] branchAdder, add4;
 wire last_sel;
 wire [31:0] PC_out;
 wire stall;
-wire forwardA;
-wire forwardB;
+wire [1:0]forwardA;
+wire [1:0]forwardB;
 wire [31:0] AUIPC,JAL,JALR;
 
 
@@ -48,7 +48,7 @@ wire [12:0] ID_EX_Ctrl;
 wire [3:0] ID_EX_Func;
 wire [4:0] ID_EX_Rs1, ID_EX_Rs2, ID_EX_Rd;
 wire [4:0] ID_EX_Opcode;
- wire [11:0] flush_ID_EX;  
+wire [12:0] flush_ID_EX;  
     
 //EX/MEM
 wire [31:0] EX_MEM_BranchAddOut, EX_MEM_ALU_out, EX_MEM_RegR2; 
@@ -58,15 +58,15 @@ wire EX_MEM_Zero;
 wire EX_MEM_Carry;
 wire EX_MEM_Sign;
 wire EX_MEM_Overflow;
-wire EX_MEM_Imm;
-wire EX_MEM_PCadd4;
+wire [31:0] EX_MEM_Imm;
+wire [31:0] EX_MEM_PCadd4;
 wire [3:0] EX_MEM_funct;
 wire [4:0] EX_MEM_Opcode;
 wire [31:0] EX_MEM_PC;
 wire [9:0] flush_EX_MEM; 
     
 //MEM/WB    
-wire [31:0] MEM_WB_Mem_out, MEM_WB_ALU_out;
+wire [31:0] MEM_WB_Mem_out, MEM_WB_ALU_out, ALU_in1;
 wire [6:0] MEM_WB_Ctrl;
 wire [4:0] MEM_WB_Rd;
 wire [31:0] MEM_WB_Imm;
@@ -81,7 +81,7 @@ wire [31:0] MEM_WB_JALR;
 
 
 
-NbitRegister #(32) PC(PC_in , reset, halt , clk, PC_out);
+NbitRegister #(32) PC(PC_in , reset, 1'b1 , clk, PC_out);
 
 N_bit_adder #(32) add1( 32'd4 , PC_out, add4 );
 
@@ -97,6 +97,9 @@ NbitRegister #(96) IF_ID (
 
 
 
+//ID_EX_CTRL:           jal jalr auipc halt lui Branch MemRead MemtoReg ALUOp MemWrite ALUSrc RegWrite                                                                     
+//EX_MEM_Ctrl:          jal jalr auipc halt lui  Memtoreg  Regwrite  Branch  MemRead   MemWrite
+//MEM_WB_Ctrl:          jal jalr auipc halt lui Memtoreg  Regwrite
 
     
     
@@ -125,8 +128,8 @@ NbitRegister #(300) ID_EX (
 
 //EX stage
 
-mux4x2 #(32) F1 (ID_EX_RegR1,DataOut,32'b0,32'b0, forwardA,ALU_in1);  //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory 
-mux4x2 #(32) F2 (ID_EX_RegR2,DataOut,32'b0,32'b0, forwardB,ALU_in2); //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory
+mux4x2 #(32) F1 (ID_EX_RegR1,WriteData,32'b0,32'b0, forwardA,ALU_in1);  //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory 
+mux4x2 #(32) F2 (ID_EX_RegR2,WriteData,32'b0,32'b0, forwardB, ALU_in2); //32'b0 replaced EX_MEM_ALU_out as we do not need to worry about this hazard since we now have a single memory
 
      Nbit_2x1mux #(32) ALU_2ndInput (
         ALU_in2, 
@@ -137,7 +140,9 @@ mux4x2 #(32) F2 (ID_EX_RegR2,DataOut,32'b0,32'b0, forwardB,ALU_in2); //32'b0 rep
 
 
 ALUControlUnit ALUcontrol(ID_EX_Ctrl[4:3],ID_EX_Func[2:0],ID_EX_Func[3],ALU_sel);  //first parameter not really needed
-NBitALU #(32) ALU(clk,ALU_in1,B, ALU_sel,ALU_Result,zero_flag,  overflow_flag , sign_flag, carry_flag );
+
+NBitALU #(32) ALU(clk,ALU_in1,B, ALU_sel ,ALU_Result,zero_flag,  overflow_flag , sign_flag, carry_flag );
+
 N_bit_adder #(32) add2(ID_EX_Imm,ID_EX_PC, branchAdder); //We don't need other conditions like before as imm_generator already does the shifting for us
 assign flush_EX_MEM = (branch_out)? 10'd0: {ID_EX_Ctrl[12]/*jal*/,ID_EX_Ctrl[11] /*jalr*/,ID_EX_Ctrl[10] /*auipc*/,ID_EX_Ctrl[9] /*halt*/,ID_EX_Ctrl[8] /*lui*/ ,ID_EX_Ctrl[5]/*Memtoreg*/, ID_EX_Ctrl[0]/*Regwrite*/, ID_EX_Ctrl[7]/*Branch*/, ID_EX_Ctrl[6]/*MemRead*/, ID_EX_Ctrl[2]/*Memwrite*/} ;
 
@@ -155,8 +160,9 @@ NbitRegister #(300) EX_MEM (
     
 //MEM stage   
 
-
+// output Mem Mux
 Memory mem (.addr({EX_MEM_ALU_out[6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[1]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final)); //EX_MEM_PC is PC_out
+//Memory mem (.addr({  DataOut [6:0], EX_MEM_PC[6:0]}),.data_in(EX_MEM_RegR2),.func3(EX_MEM_funct[2:0]),.clk(clk),.MemRead(EX_MEM_Ctrl[1]),.MemWrite(EX_MEM_Ctrl[0]),.data_out(data_final)); //EX_MEM_PC is PC_out
 
 
 BranchControl branchCntl( EX_MEM_Ctrl[2] /*branch*/, EX_MEM_Zero, EX_MEM_Sign, EX_MEM_Overflow, EX_MEM_Carry, EX_MEM_Opcode, EX_MEM_funct [2:0] , branch_out);
@@ -201,7 +207,7 @@ end
 //end
 
 NbitRegister #(300) MEM_WB (
-        .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,EX_MEM_BranchAddOut,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]}),
+        .D({data_final, EX_MEM_ALU_out,EX_MEM_Imm,EX_MEM_BranchAddOut,EX_MEM_PCadd4, AUIPC, JALR, EX_MEM_Rd, {EX_MEM_Ctrl[9], EX_MEM_Ctrl[8],EX_MEM_Ctrl[7],EX_MEM_Ctrl[6],EX_MEM_Ctrl[5],EX_MEM_Ctrl[4], EX_MEM_Ctrl[3]} }),
         .rst(reset),
         .load(1'b1),
         .clk(clk),
@@ -212,17 +218,46 @@ NbitRegister #(300) MEM_WB (
 //ID_EX_CTRL:           jal jalr auipc halt lui Branch MemRead MemtoReg ALUOp MemWrite ALUSrc RegWrite                                                                     
 //EX_MEM_Ctrl:          jal jalr auipc halt lui  Memtoreg  Regwrite  Branch  MemRead   MemWrite
 //MEM_WB_Ctrl:          jal jalr auipc halt lui Memtoreg  Regwrite
-
+// em >                 jal, jalr, lui, auipc, memtoreg, regwrite
 
 //WB stage
 
-Nbit_2x1mux #(32) mux2(MEM_WB_ALU_out,MEM_WB_Mem_out,MEM_WB_Ctrl[1], DataOut); //Memtoreg is CU
+Nbit_2x1mux #(32) mux2( MEM_WB_ALU_out, MEM_WB_Mem_out, MEM_WB_Ctrl[1], DataOut); //Memtoreg is CU
 
-assign WriteData =
-                      MEM_WB_Ctrl[4]    ? MEM_WB_AUIPC:
-                      (MEM_WB_Ctrl[5] || MEM_WB_Ctrl[6])? MEM_WB_JALR:
-                      MEM_WB_Ctrl[2]      ? MEM_WB_Imm :
-                                 DataOut;
+//assign WriteData =
+//                      MEM_WB_Ctrl[4]    ? MEM_WB_AUIPC:
+//                      (MEM_WB_Ctrl[5] || MEM_WB_Ctrl[6])? MEM_WB_JALR:
+//                      MEM_WB_Ctrl[2]      ? MEM_WB_Imm :
+//                                 DataOut;
+
+//always @(*) begin
+//    if (MEM_WB_Ctrl[4] && MEM_WB_Ctrl[0])
+//        WriteData = MEM_WB_AUIPC;
+//    else if ( (MEM_WB_Ctrl[5] || MEM_WB_Ctrl[6]) && MEM_WB_Ctrl[0])
+//        WriteData = MEM_WB_JALR;
+//    else if (MEM_WB_Ctrl[2] && MEM_WB_Ctrl[0])
+//        WriteData = MEM_WB_Imm;
+//    else
+//        WriteData = DataOut;
+//end
+            
+//MEM_WB_Ctrl:          jal jalr auipc halt lui Memtoreg  Regwrite
+// em >                 jal, jalr, lui, auipc, memtoreg, regwrite
+
+    always @(*) begin
+        if (MEM_WB_Ctrl[1] && MEM_WB_Ctrl[0])
+            WriteData = DataOut;// MEM_WB_AUIPC;
+        else if ( (MEM_WB_Ctrl[5] || MEM_WB_Ctrl[6]) && MEM_WB_Ctrl[0])
+            WriteData = MEM_WB_JALR;
+        else if (MEM_WB_Ctrl[4] && MEM_WB_Ctrl[0])
+            WriteData = MEM_WB_Imm;
+        else if (MEM_WB_Ctrl[2] && MEM_WB_Ctrl[0])
+                WriteData = MEM_WB_Imm + MEM_WB_PCadd4 - 32'd4;
+        else
+            WriteData = MEM_WB_ALU_out; //DataOut; 
+end
+
+            
                                  
 ForwardingUnit FU(ID_EX_Rs1,ID_EX_Rs2,EX_MEM_Rd,MEM_WB_Rd,EX_MEM_Ctrl[3], MEM_WB_Ctrl[0],forwardA, forwardB );                               
 
