@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 
-module N_Bit_ResetLoad_Register #(parameter N = 8)(input [N-1:0] D , rst, load, clk, output [N-1:0] Q);
+module NbitRegister #(parameter N = 8)(input [N-1:0] D , input rst, load, clk, output [N-1:0] Q);
     genvar i;
     wire [N-1:0] Dmux;
     generate

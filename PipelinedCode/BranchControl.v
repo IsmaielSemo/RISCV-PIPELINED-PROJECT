@@ -24,6 +24,7 @@
 
 module BranchControl(input Branch, Zero, Sign, Overflow, Carry, [4:0] opcode, [2:0] function3, output reg Decision);
 always@(*) begin
+Decision = 0;
     case(opcode)
         5'b11000:
         if(Branch) begin
